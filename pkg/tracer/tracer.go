@@ -6,26 +6,26 @@ import (
 )
 
 type Tracer struct {
-	// recorder for passing to tracer
-	recorder *Recorder
+	// Recorder for passing to tracer
+	Recorder *Recorder
 
-	// sampler for passing to tracer
-	sampler Sampler
+	// Sampler for passing to tracer
+	Sampler Sampler
 }
 
 // eg. recorder := NewRecorder(1024, grpcClient)
 // tracer := NewTracer(recorder)
 func NewTracer(r *Recorder, s Sampler) *Tracer {
 	return &Tracer{
-		recorder: r,
-		sampler:  s,
+		Recorder: r,
+		Sampler:  s,
 	}
 }
 
 // StartSpan create a parent span for first service
 // eg. StartSpan('payment-service') it will return the whole span in duration and ids
 func (t *Tracer) StartSpan(ctx context.Context, name string) (context.Context, *SDKSpan) {
-	sampled := t.sampler.Sample()
+	sampled := t.Sampler.Sample()
 	span := &SDKSpan{
 		TraceID:   newTraceID(),
 		SpanID:    newSpanID(),
@@ -33,7 +33,7 @@ func (t *Tracer) StartSpan(ctx context.Context, name string) (context.Context, *
 		Name:      name,
 		Sampled:   sampled,
 		StartTime: time.Now(),
-		tracer:    t,
+		Tracer:    t,
 	}
 
 	return Inject_Context(ctx, span), span
@@ -50,7 +50,7 @@ func (t *Tracer) StartChildSpan(ctx context.Context, name string) *SDKSpan {
 		Name:      name,
 		Sampled:   parent.Sampled,
 		StartTime: time.Now(),
-		tracer:    t,
+		Tracer:    t,
 	}
 }
 
@@ -58,5 +58,5 @@ func (t *Tracer) recordSpan(s *SDKSpan) {
 	if !s.Sampled {
 		return
 	}
-	t.recorder.RecordSpan(s)
+	t.Recorder.RecordSpan(s)
 }

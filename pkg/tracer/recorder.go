@@ -9,24 +9,24 @@ import (
 )
 
 type Recorder struct {
-	// buffered channel (dont block the main thread)
-	spanChan chan *SDKSpan
+	// Buffered channel (dont block the main thread)
+	SpanChan chan *SDKSpan
 
-	// grpc client
-	client tracerpb.CollectorClient
+	// gRPC client
+	Client tracerpb.CollectorClient
 }
 
 func NewRecorder(buffersize int, client tracerpb.CollectorClient) *Recorder {
 	return &Recorder{
-		spanChan: make(chan *SDKSpan, buffersize),
-		client:   client,
+		SpanChan: make(chan *SDKSpan, buffersize),
+		Client:   client,
 	}
 }
 
 // RecordSpan accepts a span and pass it to the channel
 func (r *Recorder) RecordSpan(s *SDKSpan) {
 	select {
-	case r.spanChan <- s:
+	case r.SpanChan <- s:
 	default:
 		fmt.Println("Trace buffer full, dropping span")
 	}
@@ -36,7 +36,7 @@ func (r *Recorder) RecordSpan(s *SDKSpan) {
 // to the collector after serialization.
 func (r *Recorder) ProcessSpans() {
 
-	for span := range r.spanChan {
+	for span := range r.SpanChan {
 		req := &tracerpb.ExportRequest{
 			Spans: []*tracerpb.Span{
 				toProtoSpan(span),
@@ -48,7 +48,7 @@ func (r *Recorder) ProcessSpans() {
 			100*time.Millisecond,
 		)
 
-		_, err := r.client.Collect(ctx, req)
+		_, err := r.Client.Collect(ctx, req)
 		cancel()
 
 		if err != nil {

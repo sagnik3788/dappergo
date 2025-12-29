@@ -1,1 +1,1 @@
-package collactor
+package collector

@@ -28,11 +28,11 @@ type SDKSpan struct {
 	// Annotations map[string]string
 
 	// where to send the span when done
-	tracer *Tracer
+	Tracer *Tracer
 }
 
 // stops and sends the span to the async recorder
 func (s *SDKSpan) Finish() {
 	s.EndTime = time.Now()
-	s.tracer.recordSpan(s)
+	s.Tracer.recordSpan(s)
 }
