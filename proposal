@@ -1,0 +1,42 @@
+we first implemented the traced sdk , first we started with
+the main span struct like it conatin the time and ids , next we will write the recorder which will buffer the completed span
+so after in the whole service when one span is complete we will call Finish()  which will call recoder to buffer the the spand struct data
+
+we wont block the main thread/goroutine we are using select/default pass the (r.spanChan <- s) to the buffered channnel , if full go to default simple.
+our main target is low latency , low overhead.
+
+//TODO
+Initially, it wasn’t clear:
+who should send spans to the recorder
+why Finish() shouldn’t call Recorder directly
+This caused confusion like:
+“Why not just call Recorder from Span?”
+
+ans :- we call the tracer first , span should not send to directly Recorder we cant do low overhead
+or sampling as tracer is the main brain for those task , buffer should not full full with all type of spans
+so span -> Tracer -> Recorder
+
+tracer :-
+We have implemented the tracer  in this we have newTracer function which helps us to pass the intilized buffered recorder and pass into the tracer, like this
+// eg. recorder := NewRecorder(1024, grpcClient) // it is the tunnel
+// tracer := NewTracer(recorder)// when we pass the tunnel its a new tracer and can start the work
+Next we have implemented StartSpan this is the main fucntion in this we are taking the name like StartSpan('db-service') it will start the timer and give a span
+and trace id to this service and return in the span format
+next in the tracer struct we have recoder as we want all the spans should pass through tracer and then should go to recorder
+Recorder have buffered channel and a grpc(which helps to connect to collector grpc server and export)
+Now when after the service ends we call Finish() which sends the span to Tracer  in tracer , we will do normalization and
+edit the span and send to Recorder vis nested struct
+s.tracer.recordSpan(s)  ->  t.recorder.RecordSpan(s) -> (r.spanChan <- span)
+
+
+context issue:-
+currently if a service-A(span-a) call to service-B(span-b) to service-C(span-c)  they will have separate traces they dont know about each other,
+so If service-B taking 500ms  service-A 10ms service-C 30ms we dont know from where the lantcy coming,
+solution pass the trace with context of each service so that we can know end to end flow
+pass the span in context.Context instead of a fxn arg
+	context.WithValue(Ctx, key, value)--> use like a key value pair so that we can access later
+//TODO add a proper example to prove this
+
+sampling :-
+We need to implement a sampling stratgy so that we dont add all the traces and spand to the buffer and add to the db
+so we add probabilsitc sampling , like tail. head based on parent span-> if at start parent span false dont pass to span and do tracing thats it
