@@ -40,3 +40,21 @@ pass the span in context.Context instead of a fxn arg
 sampling :-
 We need to implement a sampling stratgy so that we dont add all the traces and spand to the buffer and add to the db
 so we add probabilsitc sampling , like tail. head based on parent span-> if at start parent span false dont pass to span and do tracing thats it
+
+
+
+
+collector:-
+we will run a grpc server which will collect the traces from the Recordere exporter
+
+run the latency benchmarks --> 10k spans send
+without tracer time --> 561 ns/req
+with tracer(spans send and recive via collecter service) --> 1080 ns/req
+overhead --> 499 ns  , high latency almost double, but fine as per now
+
+
+loss 85 % means 1,414 out of 10,000, problem is with buffer management we are creating spand fast but cant export fast ,
+one by one sending via grpc network all the spans thats the issue
+so we need batching
+issue --> 1 span → 1 gRPC call → wait → 1 span → 1 gRPC call → wait ...
+do this instead --> 100 spans -> 1 grpc call -> collect 100 spans

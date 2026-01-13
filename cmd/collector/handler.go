@@ -1,1 +1,1 @@
-package collector
+package main
